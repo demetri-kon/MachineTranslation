@@ -45,15 +45,27 @@ for iteration in range(23):
     # Estimate translation probabilities
     for (e_i, f_j) in count_e_given_f.keys():
         translation_prob[(e_i, f_j)] = count_e_given_f[(e_i, f_j)] / total_f[f_j]
+        
+# Reverse alignment probabilities (swap e and f)
+reverse_translation_prob = defaultdict(lambda: 1.0 / len(opts.english))
+for (e_i, f_j) in translation_prob.keys():
+    reverse_translation_prob[(f_j, e_i)] = translation_prob[(e_i, f_j)]
 
-# Output word alignment probabilities
+# Combine forward and reverse alignments
+symmetric_translation_prob = defaultdict(float)
+for (e_i, f_j) in translation_prob.keys():
+    forward_prob = translation_prob[(e_i, f_j)]
+    reverse_prob = reverse_translation_prob[(e_i, f_j)]
+    symmetric_translation_prob[(e_i, f_j)] = (forward_prob + reverse_prob) / 2.0
+
+# Output word alignment probabilities using symmetric_translation_prob
 for (n, (f, e)) in enumerate(bitext):
     for (i, f_i) in enumerate(f):
         best_prob = 0.0
         best_j = -1
         for (j, e_j) in enumerate(e):
-            if translation_prob[(e_j, f_i)] > best_prob:
-                best_prob = translation_prob[(e_j, f_i)]
+            if symmetric_translation_prob[(e_j, f_i)] > best_prob:
+                best_prob = symmetric_translation_prob[(e_j, f_i)]
                 best_j = j
         if best_j >= 0:
             sys.stdout.write(f"{i}-{best_j} ")
